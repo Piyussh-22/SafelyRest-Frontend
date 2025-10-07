@@ -10,6 +10,8 @@ const AdminDashboard = () => {
     const fetchDashboard = async () => {
       console.log("Dashboard fetch start");
       try {
+        const token = localStorage.getItem("token");
+        setAuthToken(token);
         const res = await api.get("/admin/stats");
         if (res.data.success) {
           setDashboardData(res.data.data);

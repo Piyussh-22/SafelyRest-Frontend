@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create a single axios instance
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 });
 
