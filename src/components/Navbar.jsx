@@ -120,14 +120,6 @@ const Navbar = () => {
               </button>
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-[var(--bg)] border shadow rounded">
-                  {user.userType === "admin" && (
-                    <Link
-                      to="/admin/dashboard"
-                      className="block px-4 py-2 hover:bg-red-100"
-                    >
-                      Admin Dashboard
-                    </Link>
-                  )}
                   <button
                     onClick={() => setShowLogoutModal(true)}
                     className="w-full text-left px-4 py-2 hover:bg-red-500"
