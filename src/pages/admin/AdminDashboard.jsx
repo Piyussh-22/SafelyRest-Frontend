@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../../services/api.js";
+import api, { setAuthToken } from "../../services/api.js";
 
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
