@@ -1,58 +1,59 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { googleLoginUser } from "../redux/authSlice"; // ✅ correct import
+import { googleLoginUser } from "../store/authSlice.js";
+import { ROUTES } from "../constants/index.js";
+import { useCallback } from "react";
 
-const GoogleBtn = () => {
+const GoogleBtn = ({ userType = "guest", onSuccess }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleGoogleLogin = (response) => {
-    const idToken = response.credential;
-
-    // Dispatch thunk directly — it will handle redux + localStorage
-    dispatch(googleLoginUser({ idToken, userType: "guest" }))
-      .unwrap()
-      .then(() => {
-        navigate("/");
-      })
-      .catch((err) => {
-        console.error("Google login failed", err);
-      });
-  };
+  const handleCredentialResponse = useCallback(
+    (response) => {
+      dispatch(googleLoginUser({ idToken: response.credential, userType }))
+        .unwrap()
+        .then(() => {
+          if (onSuccess) onSuccess();
+          else navigate(ROUTES.HOME);
+        })
+        .catch((err) => console.error("Google login failed:", err));
+    },
+    [dispatch, navigate, userType, onSuccess],
+  );
 
   useEffect(() => {
-    /* global google */
-    const initializeGoogle = () => {
-      if (window.google) {
-        console.log("Google Client ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
-
-        google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleGoogleLogin,
-        });
-
-        google.accounts.id.renderButton(
-          document.getElementById("google-login-btn"),
-          { theme: "outline", size: "large", width: "250" }
-        );
-      }
+    const init = () => {
+      if (!window.google) return;
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleCredentialResponse,
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById("google-btn"),
+        {
+          theme: "outline",
+          size: "large",
+          width: "100%",
+          text: "continue_with",
+        },
+      );
     };
 
-    if (!document.getElementById("google-login-script")) {
+    if (!document.getElementById("google-gsi-script")) {
       const script = document.createElement("script");
+      script.id = "google-gsi-script";
       script.src = "https://accounts.google.com/gsi/client";
-      script.id = "google-login-script";
       script.async = true;
       script.defer = true;
-      script.onload = initializeGoogle;
+      script.onload = init;
       document.body.appendChild(script);
     } else {
-      initializeGoogle();
+      init();
     }
-  }, []);
+  }, [userType, handleCredentialResponse]);
 
-  return <div id="google-login-btn" className="flex justify-center mt-2"></div>;
+  return <div id="google-btn" className="w-full flex justify-center" />;
 };
 
 export default GoogleBtn;

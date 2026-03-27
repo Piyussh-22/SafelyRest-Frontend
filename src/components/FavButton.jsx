@@ -1,41 +1,43 @@
 import { useSelector, useDispatch } from "react-redux";
-import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
-import { toggleFavorite } from "../redux/favoritesSlice";
+import { toggleFavorite } from "../store/favoritesSlice.js";
+import useAuth from "../hooks/useAuth.js";
 
 const FavButton = ({ houseId, className = "" }) => {
   const dispatch = useDispatch();
-  const { items: favorites = [], loading } = useSelector(
-    (state) => state.favorites
-  );
+  const { isAuthenticated, isGuest } = useAuth();
+  const { items, loading } = useSelector((s) => s.favorites);
 
-  // Local state to toggle instantly
-  const [isFav, setIsFav] = useState(false);
+  const isFav = items.some((h) => String(h._id) === String(houseId));
 
-  // Sync local state with Redux on mount & whenever favorites change
-  useEffect(() => {
-    setIsFav(favorites.some((house) => String(house._id) === String(houseId)));
-  }, [favorites, houseId]);
+  // Only guests can favourite
+  if (!isAuthenticated || !isGuest) return null;
 
   const handleClick = (e) => {
     e.stopPropagation();
-    if (!loading) {
-      setIsFav((prev) => !prev); // toggle instantly
-      dispatch(toggleFavorite(houseId));
-    }
+    e.preventDefault();
+    if (loading) return;
+    dispatch(toggleFavorite(houseId));
   };
 
   return (
     <button
       onClick={handleClick}
       disabled={loading}
-      className={`rounded-full shadow hover:scale-110 transition disabled:opacity-50 ${
-        isFav
-          ? "bg-red-500 text-white p-3" // favorited
-          : "bg-white dark:bg-gray-900 text-gray-500 p-3" // not favorited
-      } ${className}`}
+      aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+      className={`
+        w-10 h-10 rounded-full flex items-center justify-center
+        shadow transition-transform hover:scale-110
+        disabled:opacity-50 disabled:cursor-not-allowed
+        ${
+          isFav
+            ? "bg-red-500 text-white"
+            : "bg-white dark:bg-gray-900 text-gray-400 hover:text-red-400"
+        }
+        ${className}
+      `}
     >
-      <Heart size={20} />
+      <Heart size={18} fill={isFav ? "currentColor" : "none"} />
     </button>
   );
 };

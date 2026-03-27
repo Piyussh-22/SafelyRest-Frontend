@@ -1,40 +1,20 @@
-import api from "./api";
+import api from "./api.js";
 
-// Login
-export const login = async (data) => {
-  try {
-    const res = await api.post("/auth/login", data);
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Login failed");
-  }
+export const login = async (credentials) => {
+  const res = await api.post("/auth/login", credentials);
+  return res.data;
 };
 
-// Signup
-export const signup = async (data) => {
-  try {
-    const res = await api.post("/auth/signup", data);
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Signup failed");
-  }
+export const signup = async (userData) => {
+  const res = await api.post("/auth/signup", userData);
+  return res.data;
 };
 
-// Logout
+export const googleLogin = async (payload) => {
+  const res = await api.post("/auth/google-login", payload);
+  return res.data;
+};
+
 export const logout = async () => {
-  try {
-    await api.post("/auth/logout");
-  } catch (err) {
-    console.warn("Logout failed:", err.response?.data?.message || err.message);
-  }
-};
-
-// Google login
-export const googleLogin = async (data) => {
-  try {
-    const res = await api.post("/auth/google-login", data);
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Google login failed");
-  }
+  await api.post("/auth/logout").catch(() => {});
 };

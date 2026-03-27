@@ -1,53 +1,184 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchHostHouses, deleteHouse } from "../../redux/housesSlice";
-import HostHouseCard from "./HostHouseCard";
+import { Link } from "react-router-dom";
+import { HousePlus, Building2, ChevronRight } from "lucide-react";
+import { fetchHostHouses, deleteHouse } from "../../store/housesSlice.js";
+import { PageSpinner } from "../../components/ui/Spinner.jsx";
+import EmptyState from "../../components/ui/EmptyState.jsx";
+import Button from "../../components/ui/Button.jsx";
+import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
+import Badge from "../../components/ui/Badge.jsx";
+import AmenitiesBadges from "../../components/house/AmenitiesBadges.jsx";
+import { ROUTES } from "../../constants/index.js";
+
+// ─── HostHouseCard (local, host-specific card) ────────────────────────────────
+
+const HostHouseCard = ({ house, onDelete, actionLoading }) => {
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const { _id, name, location, price, photos, amenities, isAvailable, capacity } = house;
+
+  return (
+    <article className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-[var(--bg)] overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      {/* Photo */}
+      <div className="relative h-44 bg-gray-100 dark:bg-gray-800">
+        <img
+          src={photos?.[photoIdx] ?? "/placeholder.png"}
+          alt={name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+        {photos?.length > 1 && (
+          <button
+            onClick={() => setPhotoIdx((i) => (i + 1) % photos.length)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center"
+            aria-label="Next photo"
+          >
+            <ChevronRight size={15} />
+          </button>
+        )}
+        <div className="absolute top-2 left-2">
+          <Badge variant={isAvailable ? "confirmed" : "cancelled"}>
+            {isAvailable ? "Active" : "Unavailable"}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="font-semibold text-[var(--text)] leading-tight line-clamp-1">
+            {name}
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">{location}</p>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-semibold text-blue-600">
+            ₹{price.toLocaleString()}
+            <span className="text-xs font-normal text-gray-400">/night</span>
+          </span>
+          <span className="text-xs text-gray-500">Up to {capacity} guests</span>
+        </div>
+
+        {amenities?.length > 0 && (
+          <AmenitiesBadges amenities={amenities.slice(0, 3)} size="sm" />
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <Link
+            to={`/houses/${_id}`}
+            className="flex-1 text-center px-3 py-2 rounded-xl text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-blue-400 hover:text-blue-600 transition-colors"
+          >
+            View listing
+          </Link>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => onDelete(_id)}
+            loading={actionLoading}
+            className="flex-1"
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+};
+
+// ─── HostHouses page ─────────────────────────────────────────────────────────
 
 const HostHouses = () => {
   const dispatch = useDispatch();
-  const { hostList, loading, error } = useSelector((state) => state.houses);
-  const { user } = useSelector((state) => state.auth);
+  const { hostList, loading, actionLoading, error } = useSelector(
+    (s) => s.houses,
+  );
+
+  const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    if (user?._id) {
-      dispatch(fetchHostHouses());
-    }
-  }, [dispatch, user]);
+    dispatch(fetchHostHouses());
+  }, [dispatch]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this house?")) return;
-
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
     try {
-      await dispatch(deleteHouse(id)).unwrap();
-      alert("House deleted successfully!");
-    } catch (err) {
-      alert("Failed to delete house: " + err);
+      await dispatch(deleteHouse(deleteId)).unwrap();
+    } finally {
+      setDeleteId(null);
     }
   };
 
+  if (loading) return <PageSpinner message="Loading your listings…" />;
+
   return (
     <div
-      className="min-h-[70vh] p-6"
+      className="min-h-screen"
       style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
     >
-      <h2 className="text-2xl font-bold mb-4">My Houses</h2>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text)]">
+              My Listings
+            </h1>
+            {hostList.length > 0 && (
+              <p className="text-sm text-gray-500 mt-1">
+                {hostList.length} propert{hostList.length !== 1 ? "ies" : "y"}
+              </p>
+            )}
+          </div>
+          <Link to={ROUTES.HOST_ADD_HOUSE}>
+            <Button size="sm">
+              <HousePlus size={15} />
+              Add house
+            </Button>
+          </Link>
+        </div>
 
-      {loading && <p>Loading your houses...</p>}
-      {error && <p className="text-red-500">Error: {error}</p>}
-      {!loading && !error && hostList.length === 0 && (
-        <p>You haven’t added any houses yet.</p>
-      )}
+        {error && (
+          <p className="text-sm text-red-500 mb-4">{error}</p>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {hostList.map((house) => (
-          <HostHouseCard
-            key={house._id}
-            house={house}
-            onDelete={handleDelete}
-            loading={loading}
+        {hostList.length === 0 ? (
+          <EmptyState
+            icon={Building2}
+            title="No listings yet"
+            description="Add your first property to start accepting bookings."
+            action={
+              <Link to={ROUTES.HOST_ADD_HOUSE}>
+                <Button>
+                  <HousePlus size={15} />
+                  Add your first house
+                </Button>
+              </Link>
+            }
           />
-        ))}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {hostList.map((house) => (
+              <HostHouseCard
+                key={house._id}
+                house={house}
+                onDelete={(id) => setDeleteId(id)}
+                actionLoading={actionLoading && deleteId === house._id}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDeleteConfirm}
+        loading={actionLoading}
+        title="Delete this listing?"
+        description="This will permanently delete the property and all associated favourites. Existing bookings are not affected."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+      />
     </div>
   );
 };

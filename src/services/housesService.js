@@ -1,64 +1,41 @@
-import api, { setAuthToken } from "./api";
+import api from "./api.js";
 
-// Public endpoints
-export const getHouses = async () => {
-  try {
-    const res = await api.get("/store/houses");
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Failed to fetch houses");
-  }
+// Public
+export const getHouses = async (params = {}) => {
+  const res = await api.get("/store/houses", { params });
+  return res.data;
 };
 
-export const getHouseDetails = async (houseId) => {
-  try {
-    const res = await api.get(`/store/houses/${houseId}`);
-    return res.data;
-  } catch (err) {
-    throw new Error(
-      err.response?.data?.message || "Failed to fetch house details"
-    );
-  }
+export const getHouseById = async (houseId) => {
+  const res = await api.get(`/store/houses/${houseId}`);
+  return res.data;
 };
 
-// Host-only endpoints
-export const getHostHouses = async (token) => {
-  try {
-    setAuthToken(token);
-    const res = await api.get("/host/houses");
-    return res.data;
-  } catch (err) {
-    throw new Error(
-      err.response?.data?.message || "Failed to fetch host houses"
-    );
-  }
+export const checkAvailability = async (houseId, checkIn, checkOut) => {
+  const res = await api.get(`/store/houses/${houseId}/availability`, {
+    params: { checkIn, checkOut },
+  });
+  return res.data;
 };
 
-export const addHouse = async (formData, token, onUploadProgress) => {
-  try {
-    setAuthToken(token);
-    const res = await api.post("/host/houses", formData, {
-      onUploadProgress: (progressEvent) => {
-        if (onUploadProgress) {
-          const percent = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          onUploadProgress(percent);
-        }
-      },
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Failed to add house");
-  }
+// Host-only
+export const getHostHouses = async () => {
+  const res = await api.get("/host/houses");
+  return res.data;
 };
 
-export const deleteHouse = async (houseId, token) => {
-  try {
-    setAuthToken(token);
-    const res = await api.delete(`/host/houses/${houseId}`);
-    return res.data;
-  } catch (err) {
-    throw new Error(err.response?.data?.message || "Failed to delete house");
-  }
+export const createHouse = async (formData, onUploadProgress) => {
+  const res = await api.post("/host/houses", formData, {
+    onUploadProgress: (e) => {
+      if (onUploadProgress) {
+        onUploadProgress(Math.round((e.loaded * 100) / e.total));
+      }
+    },
+  });
+  return res.data;
+};
+
+export const deleteHouse = async (houseId) => {
+  const res = await api.delete(`/host/houses/${houseId}`);
+  return res.data;
 };

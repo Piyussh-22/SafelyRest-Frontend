@@ -1,28 +1,14 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --bg: #fefefe; /* light */
-  --text: #1f2937; /* dark */
+  --bg: #fefefe;
+  --text: #1f2937;
 }
 
 .dark {
-  --bg: #121212; /* dark */
-  --text: #e5e7eb; /* light */
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-    border-color: transparent;
-  }
-  50% {
-    opacity: 0.7;
-    border-color: currentColor;
-  }
-}
-.blink-border {
-  animation: blink 1.5s infinite;
+  --bg: #121212;
+  --text: #e5e7eb;
 }
 
 body {

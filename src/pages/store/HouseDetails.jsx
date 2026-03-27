@@ -1,111 +1,229 @@
-import { useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchHouseById, clearSelected } from "../../redux/housesSlice";
-import FavButton from "../../components/FavButton";
-import { Home, Heart, Database } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Users,
+  ArrowLeft,
+} from "lucide-react";
+import { fetchHouseById, clearSelected } from "../../store/housesSlice.js";
+import AmenitiesBadges from "../../components/house/AmenitiesBadges.jsx";
+import FavButton from "../../components/FavButton.jsx";
+import BookingForm from "../../components/booking/BookingForm.jsx";
+import { PageSpinner } from "../../components/ui/Spinner.jsx";
+import Button from "../../components/ui/Button.jsx";
 
 const HouseDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const {
     selected: house,
-    loading,
+    detailLoading,
     error,
-  } = useSelector((state) => state.houses);
-  const { user } = useSelector((state) => state.auth);
+  } = useSelector((s) => s.houses);
+  const { user } = useSelector((s) => s.auth);
+
+  const [photoIdx, setPhotoIdx] = useState(0);
 
   useEffect(() => {
     dispatch(fetchHouseById(id));
     return () => dispatch(clearSelected());
   }, [dispatch, id]);
 
-  if (loading) return <p className="p-6">Loading house details...</p>;
-  if (error) return <p className="p-6 text-red-500">Error: {error}</p>;
-  if (!house) return <p className="p-6">House not found.</p>;
+  if (detailLoading) return <PageSpinner message="Loading house details…" />;
 
-  const isHost = user?.userType === "host";
-  // ---------------- CHANGE HERE ----------------
-  // Only authenticated guests/users can favorite
-  const canFavorite =
-    user && (user.userType === "guest" || user.userType === "user");
-  // --------------------------------------------
+  if (error || !house) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <p className="text-gray-500 mb-4">{error ?? "House not found."}</p>
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Go back
+        </Button>
+      </div>
+    );
+  }
+
+  const {
+    name,
+    price,
+    location,
+    description,
+    photos,
+    amenities,
+    capacity,
+    isAvailable,
+  } = house;
+  const hasMultiplePhotos = photos?.length > 1;
+
+  const prevPhoto = () =>
+    setPhotoIdx((i) => (i - 1 + photos.length) % photos.length);
+  const nextPhoto = () => setPhotoIdx((i) => (i + 1) % photos.length);
+
+  // Hosts see full detail but no booking form
+  const isGuest = user?.userType === "guest";
+  const showBookingForm = !user || isGuest; // unauthenticated + guests see the form
 
   return (
-    <main
-      className="min-h-[70vh] p-4 md:p-6 mx-auto max-w-6xl"
+    <div
+      className="min-h-screen"
       style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
     >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2 md:gap-0">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-          {house.name}
-        </h1>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* ── Back button ──────────────────────────────────────────────── */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[var(--text)] transition-colors mb-6"
+        >
+          <ArrowLeft size={15} />
+          Back
+        </button>
 
-        {/* Favorite button only for authenticated guests/users */}
-        {canFavorite && <FavButton houseId={house._id} />}
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Photos */}
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {house.photos.map((url, idx) => (
-            <img
-              key={idx}
-              src={url}
-              alt={`${house.name} - Photo ${idx + 1}`}
-              className="w-full h-56 sm:h-64 lg:h-72 xl:h-80 object-cover rounded-lg border hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-            />
-          ))}
-        </div>
-
-        {/* Details */}
-        <div className="flex-1 flex flex-col gap-4 max-w-lg lg:max-w-md">
-          <div className="p-4 rounded-lg shadow-md bg-[var(--bg)]">
-            <p className="text-lg font-semibold mb-2">
-              Price: ₹{house.price.toLocaleString()}
+        {/* ── Title row ────────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text)] leading-tight">
+              {name}
+            </h1>
+            <p className="flex items-center gap-1.5 text-sm text-gray-500 mt-1.5">
+              <MapPin size={14} />
+              {location}
             </p>
-            <p className="flex items-center gap-1 mb-2">
-              Location: {house.location}
-            </p>
-            <p>{house.description}</p>
           </div>
-
-          {/* Role-based Links */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-4">
-            <Link
-              to="/houses"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center transition flex justify-center gap-2"
-            >
-              <Home size={22} />
-              Houses
-            </Link>
-
-            {isHost && (
-              <Link
-                to="/host/houses"
-                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-center transition flex justify-center gap-2"
-              >
-                <Database size={22} />
-                My Listings
-              </Link>
-            )}
-
-            {/* Favorites only for authenticated guests/users */}
-            {canFavorite && (
-              <Link
-                to="/favorites"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center transition flex justify-center gap-2"
-              >
-                <Heart size={22} />
-                Favorites
-              </Link>
-            )}
+          <div className="flex items-center gap-3 shrink-0">
+            <FavButton houseId={house._id} />
           </div>
         </div>
+
+        {/* ── Main grid: photo + details ───────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left: photo gallery (3/5 width on lg) */}
+          <div className="lg:col-span-3 flex flex-col gap-4">
+            {/* Primary photo */}
+            <div className="relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/3]">
+              <img
+                src={photos?.[photoIdx] ?? "/placeholder.png"}
+                alt={`${name} — photo ${photoIdx + 1}`}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+              {hasMultiplePhotos && (
+                <>
+                  <button
+                    onClick={prevPhoto}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    onClick={nextPhoto}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  <span className="absolute bottom-3 right-3 text-xs bg-black/50 text-white px-2 py-0.5 rounded-full">
+                    {photoIdx + 1} / {photos.length}
+                  </span>
+                </>
+              )}
+              {!isAvailable && (
+                <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                  Unavailable
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail strip */}
+            {hasMultiplePhotos && (
+              <div className="flex gap-2">
+                {photos.map((url, i) => (
+                  <button
+                    key={url}
+                    onClick={() => setPhotoIdx(i)}
+                    className={`flex-1 rounded-xl overflow-hidden border-2 transition-colors ${
+                      i === photoIdx
+                        ? "border-blue-500"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Thumbnail ${i + 1}`}
+                      className="w-full h-16 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Details block */}
+            <div className="flex flex-col gap-5 mt-2">
+              {/* Price + capacity */}
+              <div className="flex items-center gap-6">
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">
+                    ₹{price.toLocaleString()}
+                    <span className="text-sm font-normal text-gray-500">
+                      /night
+                    </span>
+                  </p>
+                </div>
+                <p className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Users size={14} />
+                  Up to {capacity} guest{capacity !== 1 ? "s" : ""}
+                </p>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h2 className="font-semibold text-[var(--text)] mb-2">
+                  About this place
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">
+                  {description}
+                </p>
+              </div>
+
+              {/* Amenities */}
+              {amenities?.length > 0 && (
+                <div>
+                  <h2 className="font-semibold text-[var(--text)] mb-2">
+                    Amenities
+                  </h2>
+                  <AmenitiesBadges amenities={amenities} size="md" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: booking form (2/5 width on lg) */}
+          {showBookingForm && isAvailable && (
+            <div className="lg:col-span-2">
+              <div className="sticky top-24">
+                <BookingForm
+                  houseId={house._id}
+                  capacity={capacity}
+                  price={price}
+                />
+              </div>
+            </div>
+          )}
+
+          {!isAvailable && (
+            <div className="lg:col-span-2">
+              <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-5 text-center text-sm text-gray-500">
+                This property is currently unavailable for booking.
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </main>
+    </div>
   );
 };
 
