@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: 18
 
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm test
+
       - name: Install Vercel CLI
         run: npm i -g vercel
 
