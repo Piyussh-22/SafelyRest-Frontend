@@ -1,82 +1,61 @@
-# Safely Rest – Frontend
+# SafelyRest — Frontend
 
-A modern, responsive frontend application for a property booking platform, built using React, Redux Toolkit, and Tailwind CSS. This application enables users to browse listings, manage bookings, and interact with role-based dashboards.
+[![CI/CD](https://github.com/Piyussh-22/SafelyRest-Frontend/actions/workflows/deploy.yml/badge.svg)](https://github.com/Piyussh-22/SafelyRest-Frontend/actions/workflows/deploy.yml)
 
----
+A modern, fully responsive property booking platform built with React, TypeScript, Redux Toolkit, and Tailwind CSS. Supports three user roles — guest, host, and admin — each with dedicated dashboards and workflows.
 
-## Overview
-
-Safely Rest is designed to provide a seamless user experience for three primary roles:
-
-- Guests – browse houses, manage bookings, and save favorites
-- Hosts – manage listings and handle booking requests
-- Admins – oversee platform activity and bookings
-
-The application implements secure routing, role-based access control, and a scalable component architecture.
+**Live App:** [https://safely-rest-frontend.vercel.app](https://safely-rest-frontend.vercel.app)
+**Backend Repo:** [https://github.com/Piyussh-22/SafelyRest-Backend](https://github.com/Piyussh-22/SafelyRest-Backend)
 
 ---
 
 ## Tech Stack
 
-- React (with functional components and hooks)
-- Redux Toolkit (state management)
-- React Router (routing and navigation)
-- Tailwind CSS (UI styling)
-- Lucide React (icons)
-- Google Identity Services (authentication)
+| Layer            | Technology                   |
+| ---------------- | ---------------------------- |
+| Language         | TypeScript                   |
+| Framework        | React 19                     |
+| State Management | Redux Toolkit                |
+| Routing          | React Router v7              |
+| Styling          | Tailwind CSS v4              |
+| HTTP Client      | Axios                        |
+| Icons            | Lucide React                 |
+| Auth             | Google Identity Services     |
+| Testing          | Jest + React Testing Library |
+| Build Tool       | Vite                         |
+| CI/CD            | GitHub Actions → Vercel      |
 
 ---
 
-## Features
+## CI/CD Pipeline
 
-### Authentication & Authorization
+Every push to `main` triggers the following pipeline:
 
-- Email/password login and signup
-- Google OAuth login integration
-- Role-based route protection (Guest, Host, Admin)
-- Automatic redirect handling for authenticated users
+```
+Install dependencies → Run 24 tests → Vercel build → Deploy to Vercel
+```
 
-### Routing System
+If any step fails, deployment is blocked. All secrets are managed via GitHub Actions Secrets. Vercel Git integration is disabled — deployments are triggered exclusively from GitHub Actions.
 
-- Centralized route constants
-- Protected routes using custom guards:
-  - RequireAuth
-  - RequireRole
-  - RedirectIfAuth
+---
 
-### Guest Features
+## Testing
 
-- Browse house listings
-- View detailed house information
-- Add/remove favorites
-- Create booking requests
-- View booking history
+```bash
+npm test
+```
 
-### Host Features
+**24 tests across 7 suites:**
 
-- Manage property listings
-- Add new houses
-- View and manage booking requests
-- Accept or reject bookings
-
-### Admin Features
-
-- Admin dashboard overview
-- Manage all bookings across the platform
-
-### Booking System
-
-- Date-based availability checking
-- Booking request workflow
-- Price calculation preview
-- Status tracking (Pending, Confirmed, Rejected, Cancelled)
-
-### UI/UX
-
-- Fully responsive design
-- Dark/Light theme toggle
-- Reusable UI components (Button, Badge, Cards)
-- Clean and modular layout structure
+| Suite          | Coverage                                                                 |
+| -------------- | ------------------------------------------------------------------------ |
+| authSlice      | initial state, logout, clearAuthError                                    |
+| housesSlice    | initial state, clearSelected, clearHousesError                           |
+| bookingsSlice  | initial state, clearBookingError                                         |
+| favoritesSlice | initial state, clearFavorites, clearFavoritesError                       |
+| ErrorPage      | 404 text, page not found message, go home link, pathname display         |
+| Login          | form fields, sign in button, signup link, error on failed login          |
+| Signup         | form fields, password mismatch error, short password error, sign in link |
 
 ---
 
@@ -84,125 +63,153 @@ The application implements secure routing, role-based access control, and a scal
 
 ```
 src/
-│
 ├── components/
-│   ├── layout/
-│   ├── ui/
-│   ├── booking/
-│   ├── house/
-│
+│   ├── layout/         # Navbar, Footer, layout wrappers
+│   ├── ui/             # Button, Badge, Input, Spinner, Modal etc.
+│   ├── booking/        # BookingCard, BookingForm
+│   └── house/          # HouseCard, HouseFilters, AmenitiesBadges
 ├── pages/
-│   ├── store/
-│   ├── auth/
-│   ├── bookings/
-│   ├── host/
-│   ├── admin/
-│
+│   ├── auth/           # Login, Signup
+│   ├── store/          # HouseList, HouseDetails, FavouriteList
+│   ├── bookings/       # MyBookings, HostBookings
+│   ├── host/           # HostHouses, AddHouse
+│   └── admin/          # AdminDashboard, AdminBookings
 ├── store/
-├── hooks/
+│   ├── authSlice.ts
+│   ├── housesSlice.ts
+│   ├── bookingsSlice.ts
+│   ├── favoritesSlice.ts
+│   ├── adminSlice.ts
+│   └── store.ts
 ├── services/
-├── constants/
-│
-├── App.jsx
-├── main.jsx
+│   ├── api.ts          # Axios instance with interceptors
+│   ├── authService.ts
+│   ├── housesService.ts
+│   ├── bookingsService.ts
+│   ├── favoritesService.ts
+│   └── adminService.ts
+├── hooks/              # Custom React hooks
+├── constants/          # Routes, booking status, amenities
+├── App.tsx
+├── main.tsx
 └── index.css
 ```
 
 ---
 
-## Key Architecture Highlights
+## Features
 
-### Role-Based Access Control
+### Authentication
 
-Routes are protected using reusable guard components:
+- Email and password login and signup
+- Google OAuth integration
+- JWT token stored in localStorage
+- Axios request interceptor attaches token automatically
+- Role-based route protection using `RequireAuth`, `RequireRole`, and `RedirectIfAuth` guard components
 
-- RequireAuth ensures authentication
-- RequireRole restricts access based on user type
-- RedirectIfAuth prevents access to auth pages when logged in
+### Guest
+
+- Browse and filter house listings by location, price, and amenities
+- View detailed house information with photo gallery
+- Check date availability before booking
+- Create booking requests with date picker and guest count
+- View and cancel own bookings
+- Save and remove favourites
+
+### Host
+
+- View own property listings
+- Add new listings with photo upload and Cloudinary storage
+- View all incoming booking requests
+- Confirm or reject pending bookings
+- Auto-rejection of overlapping bookings on confirmation
+
+### Admin
+
+- Platform overview dashboard with stats
+- View all bookings across the platform with status filtering and pagination
+- Delete any property platform-wide
+
+### UI/UX
+
+- Fully responsive — mobile, tablet, and desktop
+- Dark and light theme toggle
+- Reusable component library (Button, Badge, Input, Textarea, Spinner, EmptyState, ConfirmDialog)
+- Loading states and error handling throughout
+
+---
+
+## Architecture Highlights
 
 ### State Management
 
-Redux Toolkit is used for:
+Redux Toolkit manages all async operations via `createAsyncThunk`. Each slice has separate loading flags (`loading`, `actionLoading`, `detailLoading`) to prevent UI flickering between independent operations.
 
-- Authentication state
-- Favorites management
-- Booking operations
+### API Layer
 
-### Component Design
+A single Axios instance in `services/api.ts` handles:
 
-- Highly reusable and modular components
-- Clear separation between UI and business logic
-- Consistent styling using Tailwind utility classes
+- Base URL from environment variable
+- Authorization header injection via request interceptor
+- Consistent error message extraction via response interceptor
+
+### Route Protection
+
+Three guard components handle routing logic:
+
+- `RequireAuth` — redirects to login if not authenticated
+- `RequireRole` — redirects if user does not have the required role
+- `RedirectIfAuth` — redirects authenticated users away from login and signup pages
 
 ---
 
 ## Environment Variables
 
-Create a `.env` file in the root directory and add:
-
-```
+```env
+VITE_API_URL=http://localhost:4000
 VITE_GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
 ---
 
-## Installation
+## Running Locally
 
 ```bash
-git clone <repository-url>
-cd frontend
+# Clone the repo
+git clone https://github.com/Piyussh-22/SafelyRest-Frontend.git
+cd SafelyRest-Frontend
+
+# Install dependencies
 npm install
-```
 
----
+# Add environment variables
+cp .env.example .env
 
-## Running the Application
-
-```bash
+# Start development server
 npm run dev
 ```
 
-The application will be available at:
-
-```
-http://localhost:5173
-```
+App will be available at `http://localhost:5173`
 
 ---
 
-## Build for Production
+## Test Credentials
 
-```bash
-npm run build
-```
-
----
-
-## Notes
-
-- Date handling is normalized to avoid timezone issues
-- Booking flow enforces availability checks before submission
-- Favorites are restricted to guest users only
-- UI components are designed for scalability and reuse
-
----
-
-## Future Improvements
-
-- Pagination and infinite scrolling for listings
-- Enhanced search and filtering capabilities
-- Real-time notifications for booking updates
-- Performance optimizations and lazy loading
+| Role  | Email                           | Password        |
+| ----- | ------------------------------- | --------------- |
+| Admin | admin@gmail.com                 | admin@gmail.com |
+| Guest | Create via signup               | —               |
+| Host  | Create via signup (select Host) | —               |
 
 ---
 
 ## Author
 
-Piyush Raj
-Full Stack Developer
+**Piyush Raj** — Full Stack Developer
+[GitHub](https://github.com/Piyussh-22) · [LinkedIn](https://linkedin.com/in/piyush-raj-tech)
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+MIT
